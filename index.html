@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Event Registration</title>
+<style>
+/* ===== Base ===== */
+* {margin:0; padding:0; box-sizing:border-box; font-family:"Poppins", sans-serif;}
+body {background: linear-gradient(135deg, #667eea, #764ba2); min-height:100vh; display:flex; justify-content:center; align-items:center;}
+
+/* ===== Container ===== */
+.container {
+    background:#fff;
+    width:400px;
+    padding:30px;
+    border-radius:15px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.2);
+}
+h2 {text-align:center; margin-bottom:20px; color:#333;}
+
+/* ===== Input Group ===== */
+.input-group {margin-bottom:15px; position:relative;}
+.input-group label {display:block; margin-bottom:6px; font-weight:500; text-align:left;}
+.input-group input {
+    width:100%;
+    padding:12px;
+    border-radius:8px;
+    border:1px solid #ccc;
+    outline:none;
+    transition:0.2s;
+}
+.input-group input:focus {
+    border-color:#667eea;
+    box-shadow:0 0 5px rgba(102,126,234,0.4);
+}
+
+/* ===== Custom Event Dropdown ===== */
+.event-dropdown {
+    position:absolute;
+    top:100%;
+    left:0;
+    width:100%;
+    max-height:160px;
+    overflow-y:auto;
+    background:#fff;
+    border:1px solid #ddd;
+    border-radius:6px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.15);
+    display:none;
+    z-index:100;
+}
+.event-dropdown div {
+    padding:10px;
+    cursor:pointer;
+    transition:0.2s;
+}
+.event-dropdown div:hover {background:#f0f0f0;}
+.event-input {
+    position:relative;
+}
+.event-input::after {
+    content:"▼";
+    position:absolute;
+    right:14px;
+    top:50%;
+    transform:translateY(-50%);
+    pointer-events:none;
+    color:#666;
+    font-size:12px;
+}
+
+/* ===== Button ===== */
+button {
+    width:100%;
+    padding:12px;
+    background:#6fb7ff;
+    border:none;
+    border-radius:10px;
+    color:#fff;
+    font-size:16px;
+    font-weight:500;
+    cursor:pointer;
+    transition:0.3s ease;
+}
+button:hover {
+    background:#5aa9f5;
+    transform:translateY(-1px);
+}
+
+/* ===== Success Message ===== */
+.success {
+    margin-top:15px;
+    text-align:center;
+    color:green;
+    font-weight:bold;
+    display:none;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🎉 Event Registration</h2>
+
+    <form id="eventForm">
+
+        <div class="input-group">
+            <label>Full Name</label>
+            <input type="text" id="name" placeholder="Enter your name" required>
+        </div>
+
+        <div class="input-group">
+            <label>Email</label>
+            <input type="email" id="email" placeholder="Enter your email" required>
+        </div>
+
+        <div class="input-group">
+            <label>Phone Number</label>
+            <input type="tel" id="phone" placeholder="Enter your phone" required>
+        </div>
+
+        <div class="input-group event-input">
+            <label>Event</label>
+            <input type="text" id="event" placeholder="Select event..." readonly required>
+            <div id="eventDropdown" class="event-dropdown"></div>
+        </div>
+
+        <button type="submit">Register Now</button>
+    </form>
+
+    <div class="success" id="successMsg">✅ Registration Successful!</div>
+</div>
+
+<!-- ===== Firebase ===== -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+  // Your Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyDqfLLYahQ4T-BeRw1m2ELek9ZMV25-yXg",
+    authDomain: "eve-reg-bde6b.firebaseapp.com",
+    databaseURL: "https://eve-reg-bde6b-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "eve-reg-bde6b",
+    storageBucket: "eve-reg-bde6b.appspot.com",
+    messagingSenderId: "1011087740686",
+    appId: "1:1011087740686:web:e79b25057bcb8a06ae915f"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
+</script>
+
+<script>
+  // ===== Event Dropdown =====
+  const events = ["Sports Meet","Workshop","Seminar","Hackathon","Cultural Fest","Technical Symposium"];
+  const eventInput = document.getElementById("event");
+  const dropdown = document.getElementById("eventDropdown");
+
+  events.forEach(ev => {
+      const div = document.createElement("div");
+      div.textContent = ev;
+      div.addEventListener("click", (e) => {
+          e.stopPropagation();
+          eventInput.value = ev;
+          dropdown.style.display = "none";
+      });
+      dropdown.appendChild(div);
+  });
+
+  eventInput.addEventListener("click", e => {
+      e.stopPropagation();
+      dropdown.style.display = "block";
+  });
+
+  document.addEventListener("click", () => {
+      dropdown.style.display = "none";
+  });
+
+  // ===== Form Submission to Firebase =====
+  const form = document.getElementById("eventForm");
+  const successMsg = document.getElementById("successMsg");
+
+  form.addEventListener("submit", e => {
+      e.preventDefault();
+
+      if(eventInput.value === ""){
+          alert("Please select an event!");
+          return;
+      }
+
+      const member = {
+          name: document.getElementById("name").value,
+          email: document.getElementById("email").value,
+          phone: document.getElementById("phone").value,
+          event: eventInput.value,
+          registeredAt: new Date().toString()
+      };
+
+      // Push data to Firebase
+      database.ref("registrations").push(member)
+          .then(() => {
+              successMsg.style.display = "block";
+              form.reset();
+              eventInput.value = "";
+              setTimeout(() => { successMsg.style.display = "none"; }, 2000);
+          })
+          .catch(err => {
+              console.error(err);
+              alert("Error saving data. Check console.");
+          });
+  });
+</script>
+
+</body>
+</html>
